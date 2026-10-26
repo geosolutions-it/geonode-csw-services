@@ -2,7 +2,7 @@ from enum import Enum
 import errno
 import logging
 
-from geonode.security.utils import ResourceManager
+from geonode.resource.registry import resource_manager_registry
 from guardian.shortcuts import assign_perm
 from lxml import etree
 from defusedxml import lxml as dlxml
@@ -75,7 +75,8 @@ def pre_save_service(instance, sender, **kwargs):
 
 
 def pre_delete_service(instance, sender, **kwargs):
-    ResourceManager.remove_permissions(instance.uuid, instance=instance.get_self_resource())
+    resource_manager_registry.get_for_instance(instance)\
+        .remove_permissions(instance.uuid, instance=instance.get_self_resource())
 
 
 def post_delete_service(instance, sender, **kwargs):
@@ -85,7 +86,7 @@ def post_delete_service(instance, sender, **kwargs):
 def post_save_service(instance, sender, **kwargs):
     """Get information from catalogue"""
     resources = ResourceBase.objects.filter(id=instance.resourcebase_ptr.id)
-    LOGGER.warn(f'*** POST SAVING SERVICE "{instance.uuid}"')
+    LOGGER.warning(f'*** POST SAVING SERVICE "{instance.uuid}"')
     if resources.exists():
         # Update the Catalog
         try:
@@ -122,7 +123,8 @@ def post_save_service(instance, sender, **kwargs):
                 anonymous_group = Group.objects.get(name='anonymous')
                 assign_perm('view_resourcebase', anonymous_group, r)
             else:
-                ResourceManager.remove_permissions(r.uuid, instance=r.get_self_resource())
+                resource_manager_registry.get_for_instance(instance)\
+                    .remove_permissions(instance.uuid, instance=instance.get_self_resource())
 
 
         resources.update(
