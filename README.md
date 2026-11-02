@@ -31,6 +31,8 @@ Geonode-csw_services is a Django App to let GeoNode handle some service metadata
        PYCSW["FILTER"] = {"resource_type__in": ["dataset", "cswservice"]}
 
    `GetRecordById` is not filtered, so a service record can always be fetched by its uuid.
+   The services have type `service` (the ISO hierarchy level), so they can be searched with the CQL constraint
+   `dc:type = 'service'`.
 
 1. If you use the GeoNode backup/restore, add `csw_services` to both the `apps` and `dumps` lists in the
    `[fixtures]` section of its `.ini` file, after `base` and at the same position in both lists:

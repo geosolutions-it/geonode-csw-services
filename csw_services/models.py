@@ -48,7 +48,8 @@ class CswService(ResourceBase):
 
 def pre_save_service(instance, sender, **kwargs):
 
-    instance.csw_type = 'cswservice'
+    # ISO hierarchy level, queried as dc:type; resource_type keeps them apart from the GeoNode remote services
+    instance.csw_type = 'service'
 
     if hasattr(instance, "resource_type"):
         instance.resource_type = 'cswservice'
