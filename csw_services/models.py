@@ -2,10 +2,8 @@ from enum import Enum
 import errno
 import logging
 
-from geonode.security.utils import ResourceManager
-from guardian.shortcuts import assign_perm
-from lxml import etree
-from defusedxml import lxml as dlxml
+from geonode.resource.registry import resource_manager_registry
+from guardian.shortcuts import assign_perm, remove_perm
 
 from django.db import models
 from django.db.models import signals
@@ -50,7 +48,8 @@ class CswService(ResourceBase):
 
 def pre_save_service(instance, sender, **kwargs):
 
-    instance.csw_type = 'cswservice'
+    # ISO hierarchy level, queried as dc:type; resource_type keeps them apart from the GeoNode remote services
+    instance.csw_type = 'service'
 
     if hasattr(instance, "resource_type"):
         instance.resource_type = 'cswservice'
@@ -75,7 +74,8 @@ def pre_save_service(instance, sender, **kwargs):
 
 
 def pre_delete_service(instance, sender, **kwargs):
-    ResourceManager.remove_permissions(instance.uuid, instance=instance.get_self_resource())
+    resource_manager_registry.get_for_instance(instance)\
+        .remove_permissions(instance.uuid, instance=instance.get_self_resource())
 
 
 def post_delete_service(instance, sender, **kwargs):
@@ -85,7 +85,7 @@ def post_delete_service(instance, sender, **kwargs):
 def post_save_service(instance, sender, **kwargs):
     """Get information from catalogue"""
     resources = ResourceBase.objects.filter(id=instance.resourcebase_ptr.id)
-    LOGGER.warn(f'*** POST SAVING SERVICE "{instance.uuid}"')
+    LOGGER.debug(f'Post saving service "{instance.uuid}"')
     if resources.exists():
         # Update the Catalog
         try:
@@ -94,42 +94,42 @@ def post_save_service(instance, sender, **kwargs):
             record = catalogue.get_record(instance.uuid)
         except EnvironmentError as err:
             if err.errno == errno.ECONNREFUSED:
-                LOGGER.warning(f'Could not connect to catalogue to save information for layer "{instance.name}"', err)
+                LOGGER.warning(f'Could not connect to catalogue to save service "{instance.title}": {err}')
                 return
             else:
                 raise err
 
         if not record:
-            LOGGER.exception(f'Metadata record for service {instance.title} does not exist, check the catalogue signals.')
+            LOGGER.error(f'Metadata record for service {instance.title} does not exist, check the catalogue signals.')
             return
 
-        # generate an XML document
-        if instance.metadata_uploaded and instance.metadata_uploaded_preserve:
-            md_doc = etree.tostring(dlxml.fromstring(instance.metadata_xml))
-        else:
-            LOGGER.info(f'Rebuilding metadata document for "{instance.uuid}"')
-            template = getattr(settings, 'CATALOG_SERVICE_METADATA_TEMPLATE', 'xml/service-template.xml')
-            md_doc = create_metadata_document(instance, template)
-
-        try:
-            csw_anytext = catalogue.catalogue.csw_gen_anytext(md_doc)
-        except Exception as e:
-            LOGGER.exception(e)
-            csw_anytext = ''
-
+        anonymous_group = Group.objects.get(name='anonymous')
         for r in resources:
             if instance.is_published:
-                anonymous_group = Group.objects.get(name='anonymous')
                 assign_perm('view_resourcebase', anonymous_group, r)
             else:
-                ResourceManager.remove_permissions(r.uuid, instance=r.get_self_resource())
+                # no resource manager is registered for services
+                remove_perm('view_resourcebase', anonymous_group, r)
 
-
-        resources.update(
-            metadata_xml=md_doc,
-            csw_anytext=csw_anytext)
+        update_metadata_document(instance, catalogue)
     else:
-        LOGGER.warn(f'*** The resource selected does not exists or or more than one is selected "{instance.uuid}"')
+        LOGGER.warning(f'The resource of service "{instance.uuid}" does not exist')
+
+
+def update_metadata_document(instance, catalogue=None):
+    """Store the metadata document of the service, and its CSW anytext"""
+    # services are only edited in the admin, so there is no uploaded metadata to preserve
+    LOGGER.info(f'Rebuilding service metadata for "{instance.uuid}"')
+    template = getattr(settings, 'CATALOG_SERVICE_METADATA_TEMPLATE', 'xml/service-template.xml')
+    md_doc = create_metadata_document(instance, template)
+
+    try:
+        csw_anytext = (catalogue or get_catalogue()).catalogue.csw_gen_anytext(md_doc)
+    except Exception as e:
+        LOGGER.exception(e)
+        csw_anytext = ''
+
+    ResourceBase.objects.filter(id=instance.id).update(metadata_xml=md_doc, csw_anytext=csw_anytext)
 
 
 def create_metadata_document(instance, template):

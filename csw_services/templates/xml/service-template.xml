@@ -456,7 +456,7 @@
                      codeListValue="webServices">WebServices</srv:DCPList>
                </srv:DCP>
                <srv:invocationName>
-                  <gco:CharacterString>service=WCS&amp;version=2.0&amp;request=GetCapabilities</gco:CharacterString>
+                  <gco:CharacterString>service=WCS&amp;version=2.0.1&amp;request=GetCapabilities</gco:CharacterString>
                </srv:invocationName>
                <srv:connectPoint>
                   <gmd:CI_OnlineResource>
@@ -478,7 +478,7 @@
                           codeListValue="webServices">WebServices</srv:DCPList>
                </srv:DCP>
                <srv:invocationName>
-                  <gco:CharacterString>service=WCS&amp;version=2.0&amp;request=GetCoverage</gco:CharacterString>
+                  <gco:CharacterString>service=WCS&amp;version=2.0.1&amp;request=GetCoverage</gco:CharacterString>
                </srv:invocationName>
                <srv:connectPoint>
                   <gmd:CI_OnlineResource>
@@ -500,7 +500,7 @@
                           codeListValue="webServices">WebServices</srv:DCPList>
                </srv:DCP>
                <srv:invocationName>
-                  <gco:CharacterString>service=WCS&amp;version=2.0&amp;request=DescribeCoverage</gco:CharacterString>
+                  <gco:CharacterString>service=WCS&amp;version=2.0.1&amp;request=DescribeCoverage</gco:CharacterString>
                </srv:invocationName>
                <srv:connectPoint>
                   <gmd:CI_OnlineResource>
@@ -525,40 +525,66 @@
                <srv:connectPoint>
                   <gmd:CI_OnlineResource>
                      <gmd:linkage>
-                        <gmd:URL>{{ GEOSERVER_URL }}/ows?</gmd:URL>
+                        <gmd:URL>{{ GEOSERVER_URL }}ows?</gmd:URL>
                      </gmd:linkage>
                   </gmd:CI_OnlineResource>
                </srv:connectPoint>
             </srv:SV_OperationMetadata>
-            {% endif %}
          </srv:containsOperations>
+         {% endif %}
       </srv:SV_ServiceIdentification>
    </gmd:identificationInfo>
-
+   {# Req 3.7: resource locator, pointing to the capabilities document (Rec 3.5, R3.3) #}
    <gmd:distributionInfo>
       <gmd:MD_Distribution>
          <gmd:transferOptions>
             <gmd:MD_DigitalTransferOptions>
                <gmd:onLine>
                   <gmd:CI_OnlineResource>
-                     <gmd:linkage>
                      {% if service.service_type == "WMS" %}
-                        <gmd:URL>{{ GEOSERVER_URL }}wms?service={{service.service_type}}&amp;version=1.3.0&amp;request=GetCapabilities</gmd:URL>
-                     {% elif service.service_type == "WFS" %}
-                        <gmd:URL>{{ GEOSERVER_URL }}wfs?service={{service.service_type}}&amp;version=2.0.0&amp;request=GetCapabilities</gmd:URL>
-                     {% elif service.service_type == "WCS" %}
-                        <gmd:URL>{{ GEOSERVER_URL }}/wcs?service={{service.service_type}}&amp;version=2.0&amp;request=GetCapabilities</gmd:URL>
-                     {% else %}
-                        <gmd:URL>{{ GEOSERVER_URL }}ows?</gmd:URL>
-                     {% endif %}
+                     <gmd:linkage>
+                        <gmd:URL>{{ GEOSERVER_URL }}wms?service=WMS&amp;version=1.3.0&amp;request=GetCapabilities</gmd:URL>
                      </gmd:linkage>
+                     <gmd:protocol>
+                        <gmx:Anchor xlink:href="http://www.opengis.net/def/serviceType/ogc/wms">OGC:WMS</gmx:Anchor>
+                     </gmd:protocol>
+                     <gmd:name>
+                        <gco:CharacterString>Richiesta GetCapabilities del servizio WMS</gco:CharacterString>
+                     </gmd:name>
+                     {% elif service.service_type == "WFS" %}
+                     <gmd:linkage>
+                        <gmd:URL>{{ GEOSERVER_URL }}wfs?service=WFS&amp;version=2.0.0&amp;request=GetCapabilities</gmd:URL>
+                     </gmd:linkage>
+                     <gmd:protocol>
+                        <gmx:Anchor xlink:href="http://www.opengis.net/def/serviceType/ogc/wfs">OGC:WFS</gmx:Anchor>
+                     </gmd:protocol>
+                     <gmd:name>
+                        <gco:CharacterString>Richiesta GetCapabilities del servizio WFS</gco:CharacterString>
+                     </gmd:name>
+                     {% elif service.service_type == "WCS" %}
+                     <gmd:linkage>
+                        <gmd:URL>{{ GEOSERVER_URL }}wcs?service=WCS&amp;version=2.0.1&amp;request=GetCapabilities</gmd:URL>
+                     </gmd:linkage>
+                     <gmd:protocol>
+                        <gmx:Anchor xlink:href="http://www.opengis.net/def/serviceType/ogc/wcs">OGC:WCS</gmx:Anchor>
+                     </gmd:protocol>
+                     <gmd:name>
+                        <gco:CharacterString>Richiesta GetCapabilities del servizio WCS</gco:CharacterString>
+                     </gmd:name>
+                     {% else %}
+                     <gmd:linkage>
+                        <gmd:URL>{{ GEOSERVER_URL }}ows?</gmd:URL>
+                     </gmd:linkage>
+                     {% endif %}
+                     <gmd:description>
+                        <gmx:Anchor xlink:href="http://inspire.ec.europa.eu/metadata-codelist/OnLineDescriptionCode/accessPoint">access point</gmx:Anchor>
+                     </gmd:description>
                   </gmd:CI_OnlineResource>
                </gmd:onLine>
             </gmd:MD_DigitalTransferOptions>
          </gmd:transferOptions>
       </gmd:MD_Distribution>
    </gmd:distributionInfo>
-
    <gmd:dataQualityInfo>
       <gmd:DQ_DataQuality>
          <gmd:scope>
